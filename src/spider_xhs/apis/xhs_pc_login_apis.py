@@ -7,11 +7,11 @@ import requests
 import qrcode
 from loguru import logger
 
-from apis.xhs_pc_apis import XHS_Apis
-from xhs_utils.http_util import REQUEST_TIMEOUT
-from xhs_utils.browser_profile import apply_browser_headers
-from xhs_utils.xhs_util import generate_headers, splice_str
-from xhs_utils.common_util import generate_a1, generate_web_id, fetch_sec_cookies, fetch_gid
+from spider_xhs.apis.xhs_pc_apis import XHS_Apis
+from spider_xhs.utils.http_util import REQUEST_TIMEOUT
+from spider_xhs.utils.browser_profile import apply_browser_headers
+from spider_xhs.utils.xhs_util import generate_headers, splice_str
+from spider_xhs.utils.common_util import generate_a1, generate_web_id, fetch_sec_cookies, fetch_gid
 
 
 class XHSLoginApi:

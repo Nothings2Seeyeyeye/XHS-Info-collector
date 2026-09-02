@@ -6,9 +6,9 @@ import requests
 import qrcode
 from loguru import logger
 
-from xhs_utils.http_util import REQUEST_TIMEOUT
-from xhs_utils.xhs_creator_util import generate_xsc, splice_str
-from xhs_utils.common_util import generate_a1, generate_web_id, fetch_sec_cookies, fetch_gid
+from spider_xhs.utils.http_util import REQUEST_TIMEOUT
+from spider_xhs.utils.xhs_creator_util import generate_xsc, splice_str
+from spider_xhs.utils.common_util import generate_a1, generate_web_id, fetch_sec_cookies, fetch_gid
 
 
 class XHSCreatorLoginApi:
@@ -340,7 +340,7 @@ class XHSCreatorLoginApi:
 
 
 if __name__ == '__main__':
-    from apis.xhs_creator_apis import XHS_Creator_Apis
+    from spider_xhs.apis.xhs_creator_apis import XHS_Creator_Apis
 
     login_api = XHSCreatorLoginApi()
     # cookies_str = login_api.qrcode_login(show_in_terminal=True)

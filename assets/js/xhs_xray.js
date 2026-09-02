@@ -1,58 +1,10 @@
-const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
-const html = "<!DOCTYPE html><p></p>";
-const resourceLoader = new jsdom.ResourceLoader({
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
-});
-
-const dom = new JSDOM(html,{
-    url: "https://www.xiaohongshu.com",
-    referrer: "https://www.xiaohongshu.com",
-    contentType: "text/html",
-    resources: resourceLoader,
-})
-window = dom.window;
-document = window.document;
-DOMParser = window.DOMParser;
-location = window.location;
-navigator = window.navigator;
-localStorage = window.localStorage;
-HTMLBodyElement = window.HTMLBodyElement;
-HTMLHeadElement = window.HTMLHeadElement;
-HTMLElement = window.HTMLElement;
-addEventListener = window.addEventListener;
 self = global;
-try {
-    require('./xhs_creator_sign_other.js');
-}catch (e) {
-    try {
-        require('./static/xhs_creator_sign_other.js');
-    }catch (e) {
-        require('../static/xhs_creator_sign_other.js');
-    }
-}
-
-class AudioContextMock {
-    constructor() {
-    }
-}
-class webkitAudioContextMock {
-    constructor() {
-    }
-}
-var indexedDB = {}
-
-var canvas = {
-    toDataURL: function toDataURL() {
-    },
-    getContext: function getContext(x) {
-    }
-};
+window = global;
 var zc666;
 !function() {
     "use strict";
     var e, t, n, r, o, i = {}, u = {};
-    function c(e) {
+    function f(e) {
         var t = u[e];
         if (void 0 !== t)
             return t.exports;
@@ -61,30 +13,26 @@ var zc666;
             loaded: !1,
             exports: {}
         };
-        // console.log(e)
-        return i[e].call(n.exports, n, n.exports, c),
+        console.log(e);
+        return i[e].call(n.exports, n, n.exports, f),
         n.loaded = !0,
         n.exports
     }
-    c.m = i,
-    c.amdD = function() {
-        throw new Error("define cannot be used indirect")
-    }
-    ,
-    c.amdO = {},
+    f.m = i,
+    f.amdO = {},
     e = [],
-    c.O = function(t, n, r, o) {
+    f.O = function(t, n, r, o) {
         if (!n) {
             var i = 1 / 0;
             for (d = 0; d < e.length; d++) {
                 n = e[d][0],
                 r = e[d][1],
                 o = e[d][2];
-                for (var u = !0, f = 0; f < n.length; f++)
-                    (!1 & o || i >= o) && Object.keys(c.O).every((function(e) {
-                        return c.O[e](n[f])
+                for (var u = !0, c = 0; c < n.length; c++)
+                    (!1 & o || i >= o) && Object.keys(f.O).every((function(e) {
+                        return f.O[e](n[c])
                     }
-                    )) ? n.splice(f--, 1) : (u = !1,
+                    )) ? n.splice(c--, 1) : (u = !1,
                     o < i && (i = o));
                 if (u) {
                     e.splice(d--, 1);
@@ -100,7 +48,7 @@ var zc666;
         e[d] = [n, r, o]
     }
     ,
-    c.n = function(e) {
+    f.n = function(e) {
         var t = e && e.__esModule ? function() {
             return e.default
         }
@@ -108,7 +56,7 @@ var zc666;
             return e
         }
         ;
-        return c.d(t, {
+        return f.d(t, {
             a: t
         }),
         t
@@ -121,7 +69,7 @@ var zc666;
         return e.__proto__
     }
     ,
-    c.t = function(e, r) {
+    f.t = function(e, r) {
         if (1 & r && (e = this(e)),
         8 & r)
             return e;
@@ -132,7 +80,7 @@ var zc666;
                 return e
         }
         var o = Object.create(null);
-        c.r(o);
+        f.r(o);
         var i = {};
         t = t || [null, n({}), n([]), n(n)];
         for (var u = 2 & r && e; "object" == typeof u && !~t.indexOf(u); u = n(u))
@@ -146,44 +94,113 @@ var zc666;
             return e
         }
         ,
-        c.d(o, i),
+        f.d(o, i),
         o
     }
     ,
-    c.d = function(e, t) {
+    f.d = function(e, t) {
         for (var n in t)
-            c.o(t, n) && !c.o(e, n) && Object.defineProperty(e, n, {
+            f.o(t, n) && !f.o(e, n) && Object.defineProperty(e, n, {
                 enumerable: !0,
                 get: t[n]
             })
     }
     ,
-    c.f = {},
-    c.e = function(e) {
-        return Promise.all(Object.keys(c.f).reduce((function(t, n) {
-            return c.f[n](e, t),
+    f.f = {},
+    f.e = function(e) {
+        return Promise.all(Object.keys(f.f).reduce((function(t, n) {
+            return f.f[n](e, t),
             t
         }
         ), []))
     }
     ,
-    c.u = function(e) {
-        return "js/" + e + "." + {
-            26: "ff9c6cc",
-            30: "a0cc2bd",
-            296: "5c44491",
-            495: "e5ff7f7",
-            762: "77d0f77",
-            826: "65c91fa",
-            865: "de0e838"
+    f.u = function(e) {
+        return "js/" + ({
+            41: "Board",
+            94: "Login",
+            256: "NPS",
+            290: "Notification",
+            406: "User",
+            464: "FeedToNote",
+            540: "Explore",
+            692: "Track",
+            763: "Search",
+            891: "xhs-web-player",
+            895: "Note",
+            898: "minor"
+        }[e] || e) + "." + {
+            13: "849e078",
+            18: "88c4016",
+            41: "a4fad25",
+            64: "de4ace7",
+            92: "1b9e4df",
+            94: "01eead2",
+            168: "256b43c",
+            256: "3c5b745",
+            281: "ade9f6a",
+            290: "d0e6310",
+            334: "afb0229",
+            337: "e738619",
+            398: "80ce566",
+            406: "0477db9",
+            426: "fd994fa",
+            464: "073bfcc",
+            469: "a49ea26",
+            474: "738cddb",
+            494: "c852c82",
+            513: "7ca0915",
+            540: "f44da86",
+            563: "5fc3402",
+            588: "67edf6f",
+            591: "ddde7d9",
+            692: "0c3ac5e",
+            699: "c290318",
+            737: "9268c58",
+            763: "01c6b25",
+            766: "f0a8354",
+            772: "50c8fcf",
+            787: "385b767",
+            871: "d5ef805",
+            891: "e811881",
+            895: "697ec77",
+            898: "868733b"
         }[e] + ".chunk.js"
     }
     ,
-    c.miniCssF = function(e) {
-        return "css/" + e + ".61840dc.chunk.css"
+    f.miniCssF = function(e) {
+        return "css/" + ({
+            41: "Board",
+            94: "Login",
+            256: "NPS",
+            290: "Notification",
+            406: "User",
+            464: "FeedToNote",
+            540: "Explore",
+            763: "Search",
+            895: "Note",
+            898: "minor"
+        }[e] || e) + "." + {
+            41: "b232e5e",
+            92: "95cabbe",
+            94: "b4971ae",
+            256: "5d4f927",
+            290: "efde4b1",
+            334: "0f69949",
+            337: "919c828",
+            398: "ffe8b37",
+            406: "e3c28d5",
+            426: "082db25",
+            464: "1bbfe82",
+            540: "d6040d3",
+            588: "3e8b57e",
+            763: "af3c4cd",
+            895: "98f4076",
+            898: "5a4e17f"
+        }[e] + ".chunk.css"
     }
     ,
-    c.g = function() {
+    f.g = function() {
         if ("object" == typeof globalThis)
             return globalThis;
         try {
@@ -193,17 +210,17 @@ var zc666;
                 return window
         }
     }(),
-    c.o = function(e, t) {
+    f.o = function(e, t) {
         return Object.prototype.hasOwnProperty.call(e, t)
     }
     ,
     r = {},
-    o = "ugc:",
-    c.l = function(e, t, n, i) {
+    o = "xhs-pc-web:",
+    f.l = function(e, t, n, i) {
         if (r[e])
             r[e].push(t);
         else {
-            var u, f;
+            var u, c;
             if (void 0 !== n)
                 for (var a = document.getElementsByTagName("script"), d = 0; d < a.length; d++) {
                     var l = a[d];
@@ -212,16 +229,16 @@ var zc666;
                         break
                     }
                 }
-            u || (f = !0,
+            u || (c = !0,
             (u = document.createElement("script")).charset = "utf-8",
             u.timeout = 120,
-            c.nc && u.setAttribute("nonce", c.nc),
+            f.nc && u.setAttribute("nonce", f.nc),
             u.setAttribute("data-webpack", o + n),
             u.src = e),
             r[e] = [t];
             var s = function(t, n) {
                 u.onerror = u.onload = null,
-                clearTimeout(h);
+                clearTimeout(b);
                 var o = r[e];
                 if (delete r[e],
                 u.parentNode && u.parentNode.removeChild(u),
@@ -232,17 +249,17 @@ var zc666;
                 t)
                     return t(n)
             }
-              , h = setTimeout(s.bind(null, void 0, {
+              , b = setTimeout(s.bind(null, void 0, {
                 type: "timeout",
                 target: u
             }), 12e4);
             u.onerror = s.bind(null, u.onerror),
             u.onload = s.bind(null, u.onload),
-            f && document.head.appendChild(u)
+            c && document.head.appendChild(u)
         }
     }
     ,
-    c.r = function(e) {
+    f.r = function(e) {
         "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, {
             value: "Module"
         }),
@@ -251,48 +268,19 @@ var zc666;
         })
     }
     ,
-    c.nmd = function(e) {
+    f.nmd = function(e) {
         return e.paths = [],
         e.children || (e.children = []),
         e
     }
     ,
-    c.p = "//fe-static.xhscdn.com/formula-static/ugc/public/",
-    function() {
-        if (void 0 !== c) {
-            var e = c.e
-              , t = c.p
-              , n = ["//fe-static-backup.xhscdn.com", "//fe-static.xhscdn.net"].sort((function() {
-                return Math.random() - .5
-            }
-            ))
-              , r = n.length
-              , o = {};
-            c.e = function(i) {
-                var u = o.hasOwnProperty(i) ? o[i] : r;
-                return c.p = u === r ? t : t.replace("//fe-static.xhscdn.com", n[u]),
-                e(i).catch((function(e) {
-                    if (u < 1)
-                        throw e;
-                    return new Promise((function(e) {
-                        setTimeout((function() {
-                            o[i] = u - 1,
-                            e(c.e(i))
-                        }
-                        ), 100)
-                    }
-                    ))
-                }
-                ))
-            }
-        }
-    }(),
+    f.p = "//fe-static.xhscdn.com/formula-static/xhs-pc-web/public/",
     function() {
         if ("undefined" != typeof document) {
             var e = function(e) {
                 return new Promise((function(t, n) {
-                    var r = c.miniCssF(e)
-                      , o = c.p + r;
+                    var r = f.miniCssF(e)
+                      , o = f.p + r;
                     if (function(e, t) {
                         for (var n = document.getElementsByTagName("link"), r = 0; r < n.length; r++) {
                             var o = (u = n[r]).getAttribute("data-href") || u.getAttribute("href");
@@ -311,21 +299,21 @@ var zc666;
                         var i = document.createElement("link");
                         i.rel = "stylesheet",
                         i.type = "text/css",
-                        c.nc && (i.nonce = c.nc),
+                        f.nc && (i.nonce = f.nc),
                         i.onerror = i.onload = function(n) {
                             if (i.onerror = i.onload = null,
                             "load" === n.type)
                                 r();
                             else {
                                 var u = n && n.type
-                                  , c = n && n.target && n.target.href || t
-                                  , f = new Error("Loading CSS chunk " + e + " failed.\n(" + u + ": " + c + ")");
-                                f.name = "ChunkLoadError",
-                                f.code = "CSS_CHUNK_LOAD_FAILED",
-                                f.type = u,
-                                f.request = c,
+                                  , f = n && n.target && n.target.href || t
+                                  , c = new Error("Loading CSS chunk " + e + " failed.\n(" + u + ": " + f + ")");
+                                c.name = "ChunkLoadError",
+                                c.code = "CSS_CHUNK_LOAD_FAILED",
+                                c.type = u,
+                                c.request = f,
                                 i.parentNode && i.parentNode.removeChild(i),
-                                o(f)
+                                o(c)
                             }
                         }
                         ,
@@ -338,9 +326,24 @@ var zc666;
               , t = {
                 577: 0
             };
-            c.f.miniCss = function(n, r) {
+            f.f.miniCss = function(n, r) {
                 t[n] ? r.push(t[n]) : 0 !== t[n] && {
-                    296: 1
+                    41: 1,
+                    92: 1,
+                    94: 1,
+                    256: 1,
+                    290: 1,
+                    334: 1,
+                    337: 1,
+                    398: 1,
+                    406: 1,
+                    426: 1,
+                    464: 1,
+                    540: 1,
+                    588: 1,
+                    763: 1,
+                    895: 1,
+                    898: 1
                 }[n] && r.push(t[n] = e(n).then((function() {
                     t[n] = 0
                 }
@@ -353,12 +356,11 @@ var zc666;
         }
     }(),
     function() {
-        c.b = document.baseURI || self.location.href;
         var e = {
             577: 0
         };
-        c.f.j = function(t, n) {
-            var r = c.o(e, t) ? e[t] : void 0;
+        f.f.j = function(t, n) {
+            var r = f.o(e, t) ? e[t] : void 0;
             if (0 !== r)
                 if (r)
                     n.push(r[2]);
@@ -368,10 +370,10 @@ var zc666;
                     }
                     ));
                     n.push(r[2] = o);
-                    var i = c.p + c.u(t)
+                    var i = f.p + f.u(t)
                       , u = new Error;
-                    c.l(i, (function(n) {
-                        if (c.o(e, t) && (0 !== (r = e[t]) && (e[t] = void 0),
+                    f.l(i, (function(n) {
+                        if (f.o(e, t) && (0 !== (r = e[t]) && (e[t] = void 0),
                         r)) {
                             var o = n && ("load" === n.type ? "missing" : n.type)
                               , i = n && n.target && n.target.src;
@@ -387,56 +389,59 @@ var zc666;
                     e[t] = 0
         }
         ,
-        c.O.j = function(t) {
+        f.O.j = function(t) {
             return 0 === e[t]
         }
         ;
         var t = function(t, n) {
-            var r, o, i = n[0], u = n[1], f = n[2], a = 0;
+            var r, o, i = n[0], u = n[1], c = n[2], a = 0;
             if (i.some((function(t) {
                 return 0 !== e[t]
             }
             ))) {
                 for (r in u)
-                    c.o(u, r) && (c.m[r] = u[r]);
-                if (f)
-                    var d = f(c)
+                    f.o(u, r) && (f.m[r] = u[r]);
+                if (c)
+                    var d = c(f)
             }
             for (t && t(n); a < i.length; a++)
                 o = i[a],
-                c.o(e, o) && e[o] && e[o][0](),
+                f.o(e, o) && e[o] && e[o][0](),
                 e[o] = 0;
-            return c.O(d)
+            return f.O(d)
         }
-          , n = self.webpackChunkugc = self.webpackChunkugc || [];
+          , n = self.webpackChunkxhs_pc_web = self.webpackChunkxhs_pc_web || [];
         n.forEach(t.bind(null, 0)),
         n.push = t.bind(null, n.push.bind(n))
-    }();
-    zc666 = c;
+    }()
+    zc666 = f;
 }();
-//# sourceMappingURL=https://picasso-private-1251524319.cos.ap-shanghai.myqcloud.com/data/formula-static/formula/ugc/runtime-main.2e9b9ed.js.map
-var uploader_src = zc666(56624)
-          , md5 = zc666(63487)
-          , md5_default = zc666.n(md5)
-          , instance_concat = zc666(93966)
-          , instance_concat_default = zc666.n(instance_concat)
-          , now = zc666(29623)
-          , now_default = zc666.n(now)
-function dec2hex(e, t) {
-    for (var r = "", n = e; n; ) {
-        var o = 15 & n;
-        r = String.fromCharCode((o > 9 ? 55 : 48) + o) + r,
-        n >>= 4
+//# sourceMappingURL=https://picasso-private-1251524319.cos.ap-shanghai.myqcloud.com/data/formula-static/formula/xhs-pc-web/runtime-main.8718828.js.map
+try {
+    require('./xhs_xray_pack1.js');
+} catch (e) {
+    try {
+        require('../static/xhs_xray_pack1.js');
+    } catch (e) {
+        require('./assets/js/xhs_xray_pack1.js');
     }
-    if (t)
-        for (; r.length < t; )
-            r = "0".concat(r);
-    return r.toLowerCase()
 }
-function urlSing(e) {
-    var t;
-    return md5_default()(instance_concat_default()(t = "hIJXulBFYcGRQjrz".concat(e)).call(t, dec2hex(now_default()() / 1e3)))
+try {
+    require('./xhs_xray_pack2.js');
+} catch (e) {
+    try {
+        require('../static/xhs_xray_pack2.js');
+    } catch (e) {
+        require('./assets/js/xhs_xray_pack2.js');
+    }
 }
-// let msg = "/110/0/01e63449420709d60010000000018f3c3e3630_0.jpg"
-// console.log(urlSing(msg)) // 0e
-// console.log(111) // 0e
+var n = zc666(36497)
+          , o = zc666(609)
+          , i = zc666(2030);
+var a = zc666(81422)
+          , u = zc666(49600);
+
+traceId = function() {
+    var t, e, r, s = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : i();
+    return o(t = "".concat(n(e = u.fromNumber(s, !0).shiftLeft(23).or(a.Int.seq()).toString(16)).call(e, 16, "0"))).call(t, n(r = new u(a.Int.random(32),a.Int.random(32),!0).toString(16)).call(r, 16, "0"))
+}

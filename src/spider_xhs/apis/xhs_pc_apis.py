@@ -4,16 +4,15 @@ import re
 import time
 import urllib
 import requests
-from xhs_utils.xhs_util import (
+from spider_xhs.utils.xhs_util import (
     splice_str,
     generate_request_params,
-    generate_x_b3_traceid,
     generate_search_id,
     generate_search_request_id,
     generate_x_rap_param,
     get_common_headers,
 )
-from xhs_utils.rate_limit_util import sleep_before_pagination, sleep_before_request
+from spider_xhs.utils.rate_limit_util import sleep_before_pagination, sleep_before_request
 from loguru import logger
 
 """
@@ -125,6 +124,12 @@ class XHS_Apis():
 
     def _pause_between_pages(self, label='page'):
         sleep_before_pagination(label)
+
+    @staticmethod
+    def _parse_url_query(url: str):
+        """解析 URL 查询参数，避免手写 split 导致边界值报错。"""
+        url_parse = urllib.parse.urlparse(url)
+        return url_parse, dict(urllib.parse.parse_qsl(url_parse.query, keep_blank_values=True))
 
     def get_homefeed_all_channel(self, cookies_str: str, proxies: dict = None):
         """
@@ -309,10 +314,8 @@ class XHS_Apis():
         cursor = ''
         note_list = []
         try:
-            urlParse = urllib.parse.urlparse(user_url)
+            urlParse, kvDist = self._parse_url_query(user_url)
             user_id = urlParse.path.split("/")[-1]
-            kvs = urlParse.query.split('&')
-            kvDist = {kv.split('=')[0]: kv.split('=')[1] for kv in kvs}
             xsec_token = kvDist['xsec_token'] if 'xsec_token' in kvDist else ""
             xsec_source = kvDist['xsec_source'] if 'xsec_source' in kvDist else "pc_search"
             while True:
@@ -371,10 +374,8 @@ class XHS_Apis():
         cursor = ''
         note_list = []
         try:
-            urlParse = urllib.parse.urlparse(user_url)
+            urlParse, kvDist = self._parse_url_query(user_url)
             user_id = urlParse.path.split("/")[-1]
-            kvs = urlParse.query.split('&')
-            kvDist = {kv.split('=')[0]: kv.split('=')[1] for kv in kvs}
             xsec_token = kvDist['xsec_token'] if 'xsec_token' in kvDist else ""
             xsec_source = kvDist['xsec_source'] if 'xsec_source' in kvDist else "pc_user"
             while True:
@@ -857,15 +858,13 @@ class XHS_Apis():
         """
         out_comment_list = []
         try:
-            urlParse = urllib.parse.urlparse(url)
+            urlParse, kvDist = self._parse_url_query(url)
             note_id = urlParse.path.split("/")[-1]
-            kvs = urlParse.query.split('&')
-            kvDist = {kv.split('=')[0]: kv.split('=')[1] for kv in kvs}
             success, msg, out_comment_list = self.get_note_all_out_comment(note_id, kvDist['xsec_token'], cookies_str, proxies)
             if not success:
                 raise Exception(msg)
             for comment in out_comment_list:
-                success, msg, new_comment = self.get_note_all_inner_comment(comment, kvDist['xsec_token'], cookies_str, proxies)
+                success, msg, _ = self.get_note_all_inner_comment(comment, kvDist['xsec_token'], cookies_str, proxies)
                 if not success:
                     raise Exception(msg)
         except Exception as e:

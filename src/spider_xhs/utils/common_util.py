@@ -10,12 +10,13 @@ import requests
 from loguru import logger
 from dotenv import load_dotenv
 
-from xhs_utils.http_util import REQUEST_TIMEOUT
-from xhs_utils.browser_profile import apply_browser_headers
-from xhs_utils.xhs_creator_util import generate_xsc
-from xhs_utils.xhs_util import generate_xs_xs_common
+from spider_xhs.paths import REPO_ROOT, static_js_dir
+from spider_xhs.utils.http_util import REQUEST_TIMEOUT
+from spider_xhs.utils.browser_profile import apply_browser_headers
+from spider_xhs.utils.xhs_creator_util import generate_xsc
+from spider_xhs.utils.xhs_util import generate_xs_xs_common
 
-_STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
+_STATIC_DIR = static_js_dir()
 _WEBSECTIGA_ENV_PATH = os.path.join(_STATIC_DIR, 'xhs_websectiga_env.js')
 
 _A1_CHARSET = 'abcdefghijklmnopqrstuvwxyz1234567890'
@@ -30,7 +31,7 @@ def load_env():
 
 def init():
     load_dotenv()
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    project_root = str(REPO_ROOT)
     media_override = os.getenv('XHS_MEDIA_BASE', '').strip()
     excel_override = os.getenv('XHS_EXCEL_BASE', '').strip()
     if media_override:
@@ -47,7 +48,7 @@ def init():
             logger.info(f'创建目录 {base_path}')
     cookies_str = load_env()
     if cookies_str:
-        from xhs_utils.cookie_util import check_cookie_health
+        from spider_xhs.utils.cookie_util import check_cookie_health
         for warning in check_cookie_health(cookies_str):
             logger.warning(f'Cookie 健康检查: {warning}')
     base_path = {

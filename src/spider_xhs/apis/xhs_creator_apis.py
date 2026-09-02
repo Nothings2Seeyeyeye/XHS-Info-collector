@@ -7,13 +7,13 @@ import cv2
 import numpy as np
 import requests
 from loguru import logger
-from xhs_utils.cookie_util import trans_cookies
-from xhs_utils.http_util import REQUEST_TIMEOUT
-from xhs_utils.xhs_creator_util import get_upload_media_headers, get_post_note_headers, \
+from spider_xhs.utils.cookie_util import trans_cookies
+from spider_xhs.utils.http_util import REQUEST_TIMEOUT
+from spider_xhs.utils.xhs_creator_util import get_upload_media_headers, get_post_note_headers, \
     get_loc_data, signature_js, get_fileIds_params, get_query_transcode_headers, \
     get_encryption_headers, sign_js, get_post_note_video_data, get_post_note_image_data, get_common_headers, \
     generate_xsc, generate_xs_xs_common, get_search_location_headers
-from xhs_utils.xhs_util import splice_str, generate_x_rap_param
+from spider_xhs.utils.xhs_util import splice_str, generate_x_rap_param
 
 TRANSCODE_MAX_RETRIES = 20
 TRANSCODE_RETRY_DELAY = 3

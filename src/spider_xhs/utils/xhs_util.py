@@ -6,10 +6,11 @@ import time
 from urllib.parse import urlencode
 
 import execjs
-from xhs_utils.browser_profile import apply_browser_headers
-from xhs_utils.cookie_util import require_cookie, trans_cookies
+from spider_xhs.paths import static_js_dir
+from spider_xhs.utils.browser_profile import apply_browser_headers
+from spider_xhs.utils.cookie_util import require_cookie, trans_cookies
 
-_STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+_STATIC_DIR = static_js_dir()
 
 
 def _compile_static_js(filename):

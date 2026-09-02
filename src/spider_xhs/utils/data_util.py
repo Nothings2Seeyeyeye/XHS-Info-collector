@@ -11,8 +11,8 @@ import requests
 from loguru import logger
 from retry import retry
 from PIL import Image
-from xhs_utils.browser_profile import apply_browser_headers
-from xhs_utils.rate_limit_util import sleep_before_media
+from spider_xhs.utils.browser_profile import apply_browser_headers
+from spider_xhs.utils.rate_limit_util import sleep_before_media
 
 
 def norm_str(str):
@@ -536,7 +536,7 @@ def download_note(note_info, path, save_choice, png_path=None):
         png_save_path = f'{save_path}/png'
         check_and_create_path(png_save_path)
     with open(f'{save_path}/info.json', mode='w', encoding='utf-8') as f:
-        f.write(json.dumps(note_info) + '\n')
+        json.dump(note_info, f, ensure_ascii=False)
     note_type = note_info['note_type']
     save_note_detail(note_info, save_path)
     if note_type == '图集' and save_choice in ['media', 'media-image', 'all']:

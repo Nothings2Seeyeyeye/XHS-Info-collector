@@ -3,9 +3,10 @@ import os
 
 import execjs
 
-from xhs_utils.xhs_util import generate_x_b3_traceid, generate_xray_traceid, splice_str
+from spider_xhs.paths import static_js_dir
+from spider_xhs.utils.xhs_util import generate_x_b3_traceid, generate_xray_traceid, splice_str
 
-_STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+_STATIC_DIR = static_js_dir()
 
 
 def _compile_static_js(filename):

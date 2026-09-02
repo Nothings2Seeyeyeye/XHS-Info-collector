@@ -31,6 +31,34 @@
   - 结构化目录存储
   - 格式化输出（JSON/EXCEL/MEDIA）
 
+## 🗂️ 项目结构
+
+```text
+02-个人魔改/
+├── main.py                  # 薄入口 shim：把 src/ 加入路径并调用 spider_xhs.cli:main
+├── src/
+│   └── spider_xhs/          # 核心源码包（分层清晰）
+│       ├── cli.py           # 入口编排：命令行参数 / 交互菜单 / 模式分发
+│       ├── paths.py         # 统一路径解析（仓库根 / 资源 / 数据目录）
+│       ├── apis/            # 接口适配层（PC 端、创作者平台、登录）
+│       └── utils/           # 基础能力：签名、请求、限速、cookie、数据落盘、OCR
+├── assets/
+│   └── js/                  # execjs 运行时加载的 JS 签名脚本（原 static/）
+├── config/
+│   └── .env.example         # 配置样例（复制为根目录 .env 后填写）
+├── docs/                    # 架构与规划文档（ARCHITECTURE / IMPROVEMENT_BACKLOG）
+├── scripts/
+│   └── run.sh               # 统一启动脚本（自动切到仓库根）
+├── tests/                   # 离线冒烟测试（结构 / 路径 / 签名桥接）
+├── datas/                   # 采集产物（媒体 / excel，运行时生成）
+├── node_modules/            # JS 依赖（crypto-js / jsdom，签名运行时必需，须在根目录）
+├── .env                     # 实际配置（不入库）
+├── pyproject.toml / requirements.txt
+└── Dockerfile
+```
+
+> 说明：`node_modules/` 必须位于运行目录（仓库根），因为 JS 签名通过 `require('crypto-js')` 按运行时工作目录向上查找依赖；`assets/js/` 里的脚本由 execjs 以临时文件方式执行，其物理位置不影响依赖解析。
+
 ## 🎨效果图
 
 ### 处理后的所有用户
@@ -65,7 +93,13 @@ npm install
 
 ### 🎨配置文件
 
-配置文件在项目根目录.env文件中，将下图自己的登录cookie放入其中，cookie获取➡️在浏览器f12打开控制台，点击网络，点击fetch，找一个接口点开
+先复制配置样例为根目录 `.env`（`load_dotenv` 默认读取运行目录下的 `.env`）：
+
+```
+cp config/.env.example .env
+```
+
+然后将自己的登录 cookie 放入其中，cookie获取➡️在浏览器f12打开控制台，点击网络，点击fetch，找一个接口点开
 image
 
 复制cookie到.env文件中（注意！登录小红书后的cookie才是有效的，不登陆没有用）
