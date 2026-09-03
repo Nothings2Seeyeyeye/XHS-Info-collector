@@ -103,6 +103,42 @@ class JobItem(Base):
     checkpoint: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
+class AIModel(Base):
+    __tablename__ = "ai_models"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    name: Mapped[str] = mapped_column(String(100))
+    base_url: Mapped[str] = mapped_column(Text)
+    model: Mapped[str] = mapped_column(String(200))
+    vision: Mapped[bool] = mapped_column(Boolean, default=True)
+    encrypted_key: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class ChatThread(Base):
+    __tablename__ = "chat_threads"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    title: Mapped[str] = mapped_column(String(120), default="新对话")
+    source_ids: Mapped[list] = mapped_column(JSON, default=list)
+    model_id: Mapped[str] = mapped_column(String(32), default="")
+    created_at: Mapped[float] = mapped_column(Float, default=time.time)
+    updated_at: Mapped[float] = mapped_column(Float, default=time.time, index=True)
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    thread_id: Mapped[str] = mapped_column(ForeignKey("chat_threads.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(12))
+    content: Mapped[str] = mapped_column(Text, default="")
+    context: Mapped[str] = mapped_column(Text, default="")
+    sources: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="completed")
+    error: Mapped[str] = mapped_column(Text, default="")
+    model_name: Mapped[str] = mapped_column(String(100), default="")
+    reply_to: Mapped[str] = mapped_column(String(32), default="")
+    created_at: Mapped[float] = mapped_column(Float, default=time.time, index=True)
+
+
 class Store:
     def __init__(self, state_dir=None, media_root=None):
         load_dotenv(REPO_ROOT / ".env")

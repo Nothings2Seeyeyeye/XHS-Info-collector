@@ -85,7 +85,11 @@ def create_app(store: Store | None = None):
     @asynccontextmanager
     async def lifespan(app):
         app.state.import_result = import_existing(store)
-        yield
+        app.state.chat.recover()
+        try:
+            yield
+        finally:
+            app.state.chat.close()
 
     app = FastAPI(title="拾页 · 本地素材工作台", lifespan=lifespan)
     app.state.store = store
@@ -125,6 +129,9 @@ def create_app(store: Store | None = None):
             db.add(LoginSession(id=token_hash(value), expires_at=time.time() + age))
             db.execute(delete(LoginSession).where(LoginSession.expires_at < time.time()))
         response.set_cookie(COOKIE, value, httponly=True, samesite="strict", max_age=age if remember else None)
+
+    from .ai import install_chat_routes
+    app.state.chat = install_chat_routes(app, store, authenticated)
 
     @app.get("/api/auth/status")
     def auth_status(request: Request):

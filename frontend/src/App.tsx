@@ -76,6 +76,9 @@ import {
 import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
 import { TagFilter } from "./components/TagFilter";
+import { ChatPage } from "./components/ChatPage";
+import { AISettings } from "./components/AISettings";
+import "./chat.css";
 import {
   api,
   compact,
@@ -102,9 +105,10 @@ const emptyOverview: Overview = {
   running_jobs: 0,
 };
 type Notice = (text: string, error?: boolean) => void;
-type View = "library" | "capture" | "tasks" | "trash" | "settings";
+type View = "library" | "chat" | "capture" | "tasks" | "trash" | "settings";
 const icons = {
   library: Layers3,
+  chat: Sparkles,
   capture: Link2,
   tasks: Clock3,
   trash: Trash2,
@@ -783,6 +787,7 @@ function NoteModal({
   notify,
   exportNotes,
   organize,
+  askAI,
 }: {
   id: string | null;
   close: () => void;
@@ -791,6 +796,7 @@ function NoteModal({
   notify: Notice;
   exportNotes: (ids: string[]) => void;
   organize: (action: string, ids: string[]) => void;
+  askAI: (ids: string[]) => void;
 }) {
   const [note, setNote] = useState<NoteDetail | null>(null),
     [error, setError] = useState(""),
@@ -1109,6 +1115,13 @@ function NoteModal({
                   <Button
                     variant="secondary"
                     size="sm"
+                    onClick={() => askAI([note.id])}
+                  >
+                    <Sparkles size={16} />问 AI
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => organize("add_folder", [note.id])}
                   >
                     <FolderPlus size={16} />
@@ -1403,6 +1416,7 @@ function Settings({
     setForm((f) => ({ ...f, [name]: value }));
   return (
     <div className="settings-stack">
+      <AISettings notify={notify} />
       <section className="settings-card">
         <div className="settings-heading">
           <span className="soft-icon">
@@ -1656,6 +1670,10 @@ export default function App() {
     localStorage.getItem("shiyi-layout") === "list" ? "list" : "gallery",
   );
   const [selecting, setSelecting] = useState(false);
+  const [aiLaunch, setAILaunch] = useState<{
+    nonce: number;
+    ids: string[];
+  } | null>(null);
   const [focusSearch, setFocusSearch] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -1850,6 +1868,7 @@ export default function App() {
     useSensor(KeyboardSensor),
   );
   const navigate = useCallback((next: View, folder = "") => {
+    setAILaunch(null);
     setView(next);
     setActiveFolder(folder);
     setJobId("");
@@ -1861,6 +1880,15 @@ export default function App() {
     setPage(1);
     setSidebarOpen(false);
   }, []);
+  function askAI(ids: string[]) {
+    if (ids.length > 8) {
+      notify("每次最多引用 8 份素材，请减少选择后重试", true);
+      return;
+    }
+    navigate("chat");
+    setDetail(null);
+    setAILaunch({ nonce: Date.now(), ids });
+  }
   const handleXhsConnected = useCallback(() => {
     setQROpen(false);
     setDetail(null);
@@ -1943,6 +1971,7 @@ export default function App() {
   const activeName = overview.folders.find((f) => f.id === activeFolder)?.name;
   const pageTitles: Record<View, [string, string]> = {
     library: ["总素材库", "把每一次发现，变成自己的积累。"],
+    chat: ["AI 对话", "带上你的素材，与灵感对话。"],
     capture: ["采集", "从一个链接开始，收集值得留下的内容。"],
     tasks: ["任务中心", "查看采集与识别进度，让每一步都有迹可循。"],
     trash: ["回收站", "这里的素材可以恢复，清空后将永久删除本地文件。"],
@@ -2067,7 +2096,7 @@ export default function App() {
           </button>
           <span className="nav-eyebrow">WORKSPACE</span>
           <nav className="primary-nav" aria-label="主导航">
-            {(["library", "capture", "tasks"] as View[]).map((v) => {
+            {(["library", "chat", "capture", "tasks"] as View[]).map((v) => {
               const Icon = icons[v];
               return (
                 <button
@@ -2079,9 +2108,11 @@ export default function App() {
                   <span>
                     {v === "library"
                       ? "全部素材"
-                      : v === "capture"
-                        ? "链接采集"
-                        : "任务中心"}
+                      : v === "chat"
+                        ? "AI 对话"
+                        : v === "capture"
+                          ? "链接采集"
+                          : "任务中心"}
                   </span>
                   {v === "library" && <small>{overview.total}</small>}
                   {v === "tasks" && overview.running_jobs > 0 && (
@@ -2227,92 +2258,106 @@ export default function App() {
               </button>
             </div>
           </header>
-          <main className="page-main">
-            <section className="page-heading">
-              <div>
-                <span className="eyebrow">
-                  {jobId
-                    ? "COLLECTION RESULTS"
-                    : activeFolder
-                      ? "YOUR COLLECTION"
-                      : {
-                          library: "THE COLLECTION",
-                          capture: "COLLECT & CURATE",
-                          tasks: "IN PROGRESS",
-                          trash: "RECENTLY REMOVED",
-                          settings: "YOUR WORKSPACE",
-                        }[view]}
-                </span>
-                <h1>
-                  {jobId ? "采集结果" : activeName || pageTitles[view][0]}
-                  {isGrid && <span className="heading-count">{total}</span>}
-                </h1>
-                <p>
-                  {jobId
-                    ? "已入库的笔记可以直接打开查看，任务进度会自动更新。"
-                    : activeName
-                      ? "把相关的素材放在一起，让思路慢慢成形。"
-                      : pageTitles[view][1]}
-                </p>
-              </div>
-              <div className="heading-actions">
-                {jobId ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setJobId("");
-                      navigate("tasks");
-                    }}
-                  >
-                    <ArrowLeft size={16} />
-                    返回任务
-                  </Button>
-                ) : view === "library" ? (
-                  <>
+          <main
+            className={`page-main ${view === "chat" ? "chat-page-main" : ""}`}
+          >
+            {view !== "chat" && (
+              <section className="page-heading">
+                <div>
+                  <span className="eyebrow">
+                    {jobId
+                      ? "COLLECTION RESULTS"
+                      : activeFolder
+                        ? "YOUR COLLECTION"
+                        : {
+                            library: "THE COLLECTION",
+                            capture: "COLLECT & CURATE",
+                            tasks: "IN PROGRESS",
+                            trash: "RECENTLY REMOVED",
+                            settings: "YOUR WORKSPACE",
+                          }[view]}
+                  </span>
+                  <h1>
+                    {jobId ? "采集结果" : activeName || pageTitles[view][0]}
+                    {isGrid && <span className="heading-count">{total}</span>}
+                  </h1>
+                  <p>
+                    {jobId
+                      ? "已入库的笔记可以直接打开查看，任务进度会自动更新。"
+                      : activeName
+                        ? "把相关的素材放在一起，让思路慢慢成形。"
+                        : pageTitles[view][1]}
+                  </p>
+                </div>
+                <div className="heading-actions">
+                  {jobId ? (
                     <Button
                       variant="secondary"
+                      onClick={() => {
+                        setJobId("");
+                        navigate("tasks");
+                      }}
+                    >
+                      <ArrowLeft size={16} />
+                      返回任务
+                    </Button>
+                  ) : view === "library" ? (
+                    <>
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
+                          activeFolder
+                            ? exportNotes([], activeFolder)
+                            : selected.length
+                              ? exportNotes(selected)
+                              : notify("先选择需要导出的笔记")
+                        }
+                      >
+                        <Download size={16} />
+                        导出{selected.length ? ` ${selected.length} 条` : ""}
+                      </Button>
+                      <Button onClick={() => navigate("capture")}>
+                        <Plus size={17} />
+                        添加素材
+                      </Button>
+                    </>
+                  ) : view === "trash" && overview.trash > 0 ? (
+                    <Button
+                      variant="destructive"
                       onClick={() =>
-                        activeFolder
-                          ? exportNotes([], activeFolder)
-                          : selected.length
-                            ? exportNotes(selected)
-                            : notify("先选择需要导出的笔记")
+                        setConfirm({
+                          title: "永久清空回收站？",
+                          text: `将删除回收站中的 ${overview.trash} 条笔记及对应本地文件。此操作无法恢复。`,
+                          run: async () => {
+                            await api("/trash/purge", { note_ids: [] });
+                            refresh();
+                          },
+                        })
                       }
                     >
-                      <Download size={16} />
-                      导出{selected.length ? ` ${selected.length} 条` : ""}
+                      <Trash2 size={16} />
+                      清空回收站
                     </Button>
+                  ) : view === "tasks" ? (
                     <Button onClick={() => navigate("capture")}>
-                      <Plus size={17} />
-                      添加素材
+                      <Plus size={16} />
+                      新建采集
                     </Button>
-                  </>
-                ) : view === "trash" && overview.trash > 0 ? (
-                  <Button
-                    variant="destructive"
-                    onClick={() =>
-                      setConfirm({
-                        title: "永久清空回收站？",
-                        text: `将删除回收站中的 ${overview.trash} 条笔记及对应本地文件。此操作无法恢复。`,
-                        run: async () => {
-                          await api("/trash/purge", { note_ids: [] });
-                          refresh();
-                        },
-                      })
-                    }
-                  >
-                    <Trash2 size={16} />
-                    清空回收站
-                  </Button>
-                ) : view === "tasks" ? (
-                  <Button onClick={() => navigate("capture")}>
-                    <Plus size={16} />
-                    新建采集
-                  </Button>
-                ) : null}
-              </div>
-            </section>
-            {overview.xhs.state === "expired" && (
+                  ) : null}
+                </div>
+              </section>
+            )}
+            <div hidden={view !== "chat"}>
+              <ChatPage
+                active={view === "chat"}
+                launch={aiLaunch}
+                folders={overview.folders}
+                openNote={setDetail}
+                openSettings={() => navigate("settings")}
+                notify={notify}
+              />
+            </div>
+            {overview.xhs.state === "expired" && view !== "chat" && (
               <div className="login-banner">
                 <QrCode size={20} />
                 <div>
@@ -2733,10 +2778,12 @@ export default function App() {
                 )}
               </section>
             )}
-            <footer className="page-footer">
-              <span>拾页 · 每一份灵感，都有归处</span>
-              <span>LOCAL FIRST. ALWAYS YOURS.</span>
-            </footer>
+            {view !== "chat" && (
+              <footer className="page-footer">
+                <span>拾页 · 每一份灵感，都有归处</span>
+                <span>LOCAL FIRST. ALWAYS YOURS.</span>
+              </footer>
+            )}
           </main>
         </div>
       </div>
@@ -2778,6 +2825,9 @@ export default function App() {
             </>
           ) : (
             <>
+              <Button variant="ghost" onClick={() => askAI(selected)}>
+                <Sparkles size={16} />问 AI
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => openOrganize("add_folder", selected)}
@@ -2874,6 +2924,7 @@ export default function App() {
         notify={notify}
         exportNotes={exportNotes}
         organize={openOrganize}
+        askAI={askAI}
       />
       <QRDialog
         open={qrOpen}

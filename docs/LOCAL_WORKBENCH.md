@@ -1,5 +1,7 @@
 # 拾页 · 本地小红书素材工作台
 
+新增 [AI 对话工作台](AI_WORKSPACE.md)：支持 `@` 多份图文/视频、流式对话、引用回看、历史保存与独立模型配置。
+
 ## 已确认的第一版
 
 - 仅本机访问；首次初始化一个管理员。React/TypeScript/Vite 前端，Python/FastAPI 后端，SQLAlchemy/SQLite 数据库，独立 Python 任务进程。
