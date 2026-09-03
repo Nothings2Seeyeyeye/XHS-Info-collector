@@ -202,7 +202,3 @@ npm --prefix frontend run test:e2e
 ## 项目状态
 
 拾页仍是一个持续迭代的个人原型。当前重点是验证“采集 → 补全 → 整理 → 调用”的闭环，并优先减少日常使用中的摩擦。欢迎通过 Issue 提交可复现的问题和具体使用场景。
-
-## 致谢
-
-拾页基于 [Nothings2Seeyeyeye/XHS-Info-collector](https://github.com/Nothings2Seeyeyeye/XHS-Info-collector) 的 `Spider_XHS` 采集能力继续开发，感谢原项目作者与贡献者提供的基础实现。
