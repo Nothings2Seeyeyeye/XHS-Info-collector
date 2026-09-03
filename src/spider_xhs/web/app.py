@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import qrcode
 import requests
+from loguru import logger
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, InvalidHashError
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -31,6 +32,8 @@ from .db import Folder, Job, JobItem, LoginSession, Note, NoteFolder, NoteTag, S
 from .library import import_existing, local_path, serialize_note
 
 COOKIE = "xhs_library_session"
+LOGIN_VERIFY_ATTEMPTS = 3
+LOGIN_VERIFY_TIMEOUT = 45
 ph = PasswordHasher()
 
 
@@ -445,8 +448,10 @@ def create_app(store: Store | None = None):
         from spider_xhs.apis.xhs_pc_login_apis import XHSLoginApi
         with qr_lock:
             api = XHSLoginApi()
+            stage = "initial_cookie"
             try:
                 cookies = api.generate_init_cookies()
+                stage = "create_qr"
                 ok, msg, data = api.generate_qrcode(cookies)
                 if not ok:
                     raise ValueError(str(msg) or "二维码生成失败")
@@ -455,7 +460,9 @@ def create_app(store: Store | None = None):
                 challenge.clear()
                 challenge.update({"id": uid(), "data": data, "created": time.time()})
                 return {"id": challenge["id"], "image": "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()}
-            except requests.exceptions.SSLError:
+            except requests.exceptions.SSLError as exc:
+                from .tasks import public_error
+                logger.warning("QR login HTTPS failure at {}: {}", stage, public_error(exc))
                 raise HTTPException(502, "无法与小红书建立安全连接。请先在常用浏览器打开小红书；若官网提示安全限制或 IP 风险，请按官网提示处理后再试。")
             except requests.RequestException:
                 raise HTTPException(502, "连接小红书失败，请检查网络，并确认小红书官网可以正常登录。")
@@ -469,33 +476,102 @@ def create_app(store: Store | None = None):
     def poll_qrcode(challenge_id: str):
         from spider_xhs.apis.xhs_pc_login_apis import XHSLoginApi
         with qr_lock:
-            if challenge.get("id") != challenge_id or time.time() - challenge.get("created", 0) > 240:
+            if challenge.get("id") != challenge_id:
                 return {"state": "expired", "message": "二维码已过期，请重新生成"}
+            if challenge.get("result"):
+                return challenge["result"]
+
+            def finish(state, message):
+                result = {"state": state, "message": message}
+                challenge["result"] = result
+                challenge.pop("data", None)
+                return result
+
+            if time.time() - challenge.get("created", 0) > 240:
+                return finish("expired", "二维码已过期，请重新生成")
             api, data = XHSLoginApi(), challenge["data"]
-            try:
-                ok, message, cookies = api.check_qrcode_status(data["qr_id"], data["code"], data["cookies"])
-                data["cookies"] = cookies
-                if not ok:
-                    if any(word in str(message) for word in ("IP存在风险", "IP 存在风险", "安全限制", "访问过于频繁", "需要验证")):
-                        challenge.clear()
-                        return {"state": "blocked", "message": "小红书限制了当前登录请求，请先在官网按提示处理网络或验证，再重新生成二维码。"}
-                    return {"state": "expired" if "过期" in message else "waiting", "message": message}
-                valid, user, cookies = api.get_user_info(cookies)
-                if not valid or not cookies.get("web_session"):
-                    return {"state": "waiting", "message": "正在确认登录状态"}
-                user_id = str(user.get("user_id") or user.get("id") or "")
-                previous = store.get("xhs_status", {})
-                if previous.get("user_id") and user_id and previous["user_id"] != user_id:
-                    return {"state": "expired", "message": "请使用原小红书账号扫码，以恢复该账号的采集任务"}
-                store.put_secret("xhs_cookie", api.cookies_to_str(cookies))
-                store.put("xhs_status", {"state": "valid", "nickname": user.get("nickname", "已登录"), "user_id": user_id, "checked_at": time.time()})
+
+            def connected(user):
+                store.put("xhs_status", {"state": "valid", "nickname": user.get("nickname", "已登录"),
+                    "user_id": str(user.get("user_id") or user.get("id")), "checked_at": time.time()})
                 with store.session() as db:
                     for job in db.scalars(select(Job).where(Job.state == "waiting_login")):
                         job.state, job.message = "queued", "登录已恢复，等待继续"
-                challenge.clear()
-                return {"state": "success", "message": "登录成功，已保存凭据并恢复等待中的任务"}
+
+            def blocked(message):
+                # A rejected QR request does not invalidate a previously saved
+                # session. Reuse it only after a fresh, same-account check.
+                previous = store.get("xhs_status", {})
+                saved_cookie = store.secret("xhs_cookie")
+                if saved_cookie and previous.get("user_id"):
+                    from spider_xhs.utils.cookie_util import trans_cookies
+                    try:
+                        saved_fields = trans_cookies(saved_cookie)
+                        if saved_fields.get("a1") and saved_fields.get("web_session"):
+                            valid, user, _ = XHSLoginApi().get_user_info(saved_fields)
+                            user_id = str(user.get("user_id") or user.get("id") or "")
+                            if valid and user.get("guest") in (False, 0, 'false', '0') and user_id == previous["user_id"]:
+                                connected(user)
+                                return finish("success", "本次扫码请求受限；已确认原账号的登录仍有效，继续使用已保存的登录。")
+                    except Exception:
+                        pass
+                return finish("blocked", message)
+
+            def verification_retry(message):
+                attempts = data.get("verification_attempts", 0)
+                elapsed = time.time() - data.get("verification_started", time.time())
+                if attempts >= LOGIN_VERIFY_ATTEMPTS or elapsed >= LOGIN_VERIFY_TIMEOUT:
+                    return finish("error", f"扫码已确认，但账号校验未完成：{message} 请重新生成二维码。")
+                return {"state": "verifying", "message": f"扫码已确认，正在重试账号校验（{attempts}/{LOGIN_VERIFY_ATTEMPTS}）：{message}"}
+
+            try:
+                if not data.get("confirmed"):
+                    ok, message, cookies = api.check_qrcode_status(data["qr_id"], data["code"], data["cookies"])
+                    data["cookies"] = cookies
+                    if not ok:
+                        issue = api.last_auth_issue or {}
+                        if issue.get("kind") == "blocked" or any(word in str(message) for word in ("IP存在风险", "IP 存在风险", "安全限制", "访问过于频繁", "需要验证")):
+                            return blocked(issue.get("message") or "小红书限制了当前登录请求，请先在官网处理后重新扫码。")
+                        if issue:
+                            return finish("error", issue["message"])
+                        if "过期" in str(message):
+                            return finish("expired", message)
+                        return {"state": "waiting", "message": message}
+                    data["confirmed"] = True
+                    data["verification_started"] = time.time()
+                    data["verification_attempts"] = 0
+                cookies = data["cookies"]
+                if not cookies.get("web_session"):
+                    return finish("error", "手机已确认，但登录凭据没有交换成功，请重新生成二维码。")
+                if data.get("verification_attempts", 0) >= LOGIN_VERIFY_ATTEMPTS or time.time() - data["verification_started"] >= LOGIN_VERIFY_TIMEOUT:
+                    return finish("error", "账号校验超时，请检查网络后重新生成二维码。")
+                data["verification_attempts"] += 1
+                valid, user, cookies = api.get_user_info(cookies)
+                data["cookies"] = cookies
+                if not valid:
+                    issue = api.last_auth_issue or {}
+                    if issue.get("kind") == "blocked":
+                        return blocked(issue["message"])
+                    if issue.get("kind") in {"authentication", "protocol"}:
+                        return finish("error", issue["message"])
+                    return verification_retry(issue.get("message") or "小红书暂未返回有效账号信息。")
+                if not cookies.get("web_session") or user.get("guest") in (True, 1, 'true', '1'):
+                    return finish("error", "小红书未确认有效登录，请重新扫码并在手机上确认。")
+                user_id = str(user.get("user_id") or user.get("id") or "")
+                if not user_id:
+                    return finish("error", "账号校验未返回用户信息，请重新扫码。")
+                previous = store.get("xhs_status", {})
+                if previous.get("user_id") and user_id and previous["user_id"] != user_id:
+                    return finish("error", "请使用原小红书账号扫码，以恢复该账号的采集任务")
+                store.put_secret("xhs_cookie", api.cookies_to_str(cookies))
+                connected(user)
+                return finish("success", "登录成功，已保存凭据并恢复等待中的任务")
+            except requests.RequestException:
+                if data.get("confirmed"):
+                    return verification_retry("连接账号校验服务失败。")
+                raise HTTPException(502, "查询扫码状态失败，请检查直连网络后重试。")
             except Exception:
-                raise HTTPException(502, "查询登录状态失败，请稍后重试")
+                return finish("error", "账号校验未完成，请重新生成二维码或稍后重试。")
 
     @app.post("/api/exports", dependencies=[Depends(authenticated)])
     def export_notes(data: ExportSelection):

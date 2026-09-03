@@ -19,6 +19,69 @@ class XHSLoginApi:
         self.base_url = "https://edith.xiaohongshu.com"
         self.as_url = "https://as.xiaohongshu.com"
         self.home_url = 'https://www.xiaohongshu.com/explore'
+        self.last_auth_issue = None
+
+    def _auth_issue(self, kind, message, response=None, payload=None):
+        # Diagnostics deliberately contain no cookie/session or raw response body.
+        self.last_auth_issue = {
+            'kind': kind,
+            'message': message,
+            'http_status': getattr(response, 'status_code', None),
+            'code': (payload or {}).get('code'),
+        }
+
+    def _check_auth_response(self, response, payload):
+        status = response.status_code
+        code = str(payload.get('code', ''))
+        message = str(payload.get('msg', ''))
+        if status in {403, 429, 461, 471} or code == '300012' or any(word in message for word in ('安全限制', 'IP存在风险', 'IP 存在风险', '需要验证', '访问过于频繁')):
+            detail = f'（HTTP {status}）' if status >= 400 else ''
+            self._auth_issue('blocked', f'本次登录请求被小红书拦截{detail}。请在官网检查并完成安全验证后再试；重新扫码不一定能解除限制。', response, payload)
+            return False
+        if status >= 500:
+            self._auth_issue('temporary', '小红书账号服务暂时不可用。', response, payload)
+            return False
+        if status >= 400 or payload.get('success') is not True:
+            if status < 400 and code in ('', '0'):
+                self._auth_issue('protocol', '小红书响应缺少有效的登录确认信息，请稍后重试。', response, payload)
+                return False
+            suffix = f'（HTTP {status}）' if status >= 400 else f'（错误码 {code[:30]}）'
+            self._auth_issue('authentication', f'小红书未确认有效登录{suffix}，请重新生成二维码。', response, payload)
+            return False
+        return True
+
+    @staticmethod
+    def _trace_auth_response(stage, response, payload):
+        """Log response shape only; QR tokens, user details and cookies stay private."""
+        data = payload.get('data')
+        data = data if isinstance(data, dict) else {}
+        login_info = data.get('login_info')
+        login_info = login_info if isinstance(login_info, dict) else {}
+        code = payload.get('code')
+        success = payload.get('success')
+        if stage == 'qrcode_status' and response.status_code < 400 and success is True and data.get('code_status') in (0, 1):
+            return
+        logger.debug('XHS auth {}: {}', stage, {
+            'http_status': response.status_code,
+            'code': code if str(code).lstrip('-').isdigit() else None,
+            'success': success if isinstance(success, (bool, int)) else None,
+            'success_type': type(success).__name__,
+            'code_status': data.get('code_status') if isinstance(data.get('code_status'), int) else None,
+            'has_issued_session': bool(login_info.get('session') or response.cookies.get('web_session')),
+            'has_user_id': bool(data.get('user_id') or data.get('id')),
+            'guest': data.get('guest') if isinstance(data.get('guest'), bool) else None,
+        })
+
+    def _auth_payload(self, response, stage):
+        # A blocked request can return HTML or an empty body. Classify its HTTP
+        # status before treating the missing JSON as a connection/login failure.
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = {}
+        payload = payload if isinstance(payload, dict) else {}
+        self._trace_auth_response(stage, response, payload)
+        return payload
 
     @staticmethod
     def _get_sec_headers():
@@ -73,9 +136,9 @@ class XHSLoginApi:
         for key, value in resp.cookies.items():
             cookies[key] = value
 
-        res = resp.json()
-        if not res.get('success'):
-            return False, res.get('msg', '未知错误'), None
+        res = self._auth_payload(resp, 'qrcode_create')
+        if not self._check_auth_response(resp, res):
+            return False, self.last_auth_issue['message'], None
         data = res.get('data') or {}
         if not all(key in data for key in ('qr_id', 'code', 'url')):
             return False, res.get('msg', '二维码响应缺少必要字段'), {'cookies': cookies, 'res_json': res}
@@ -88,40 +151,15 @@ class XHSLoginApi:
         }
 
     def check_qrcode_status(self, qr_id, code, cookies):
-        api = '/api/qrcode/userinfo'
-        data = {"qrId": qr_id, "code": code}
+        """Poll the native endpoint that returns both status and login_info.
 
-        headers, data = generate_headers(cookies['a1'], api, data)
-        resp = requests.post(
-            self.base_url + api,
-            headers=headers, cookies=cookies, data=data,
-            timeout=REQUEST_TIMEOUT
-        )
-        for key, value in resp.cookies.items():
-            cookies[key] = value
-
-        res = resp.json()
-        status = (res.get('data') or {}).get('codeStatus')
-        if status is None:
-            return False, res.get('msg', '二维码状态响应缺少 codeStatus'), cookies
-
-        if status == 2:
-            cookies = self._login_by_qrcode_status(qr_id, code, cookies)
-
-        status_map = {
-            0: (False, '请扫描二维码'),
-            1: (False, '请确认登录'),
-            2: (True, '验证成功'),
-            3: (False, '二维码已过期'),
-        }
-        success, msg = status_map.get(status, (False, f'未知状态: {status}'))
-        return success, msg, cookies
-
-    def _login_by_qrcode_status(self, qr_id, code, cookies):
+        Do not mix the legacy /api/qrcode/userinfo confirmation with a second
+        session exchange: the native status response is the single authority.
+        """
+        self.last_auth_issue = None
         api = '/api/sns/web/v1/login/qrcode/status'
         params = {"qr_id": qr_id, "code": code}
         splice_api = splice_str(api, params)
-
         headers, _ = generate_headers(cookies['a1'], splice_api, method='GET')
         resp = requests.get(
             self.base_url + splice_api,
@@ -130,19 +168,40 @@ class XHSLoginApi:
         )
         for key, value in resp.cookies.items():
             cookies[key] = value
+        res = self._auth_payload(resp, 'qrcode_status')
+        if not self._check_auth_response(resp, res):
+            return False, self.last_auth_issue['message'], cookies
+        data = res.get('data') or {}
+        try:
+            status = int(data.get('code_status'))
+        except (TypeError, ValueError):
+            self._auth_issue('protocol', '二维码状态响应缺少确认信息，请重新生成二维码。', resp, res)
+            return False, self.last_auth_issue['message'], cookies
+        if status == 2:
+            login_info = data.get('login_info') or {}
+            session = login_info.get('session') or resp.cookies.get('web_session')
+            if not session:
+                self._auth_issue('protocol', '手机已确认，但小红书没有返回登录凭据，请重新生成二维码。', resp, res)
+                return False, self.last_auth_issue['message'], cookies
+            # Always replace an old or anonymous session with this QR's session.
+            cookies['web_session'] = session
+            return True, '扫码已确认，正在校验账号', cookies
+        mapping = {0: '请扫描二维码', 1: '请在手机上确认登录', 3: '二维码已过期'}
+        if status not in mapping:
+            self._auth_issue('protocol', '二维码返回了无法识别的状态，请重新生成二维码。', resp, res)
+            return False, self.last_auth_issue['message'], cookies
+        return False, mapping[status], cookies
 
-        res = resp.json()
-        if res.get('success') and 'login_info' in res.get('data', {}):
-            login_info = res['data']['login_info']
-            if 'session' in login_info and 'web_session' not in cookies:
-                cookies['web_session'] = login_info['session']
-
+    def _login_by_qrcode_status(self, qr_id, code, cookies):
+        # Backwards-compatible helper for existing callers.
+        self.check_qrcode_status(qr_id, code, cookies)
         return cookies
 
     def get_user_info(self, cookies):
+        self.last_auth_issue = None
         api = '/api/sns/web/v2/user/me'
 
-        headers, _ = generate_headers(cookies['a1'], api)
+        headers, _ = generate_headers(cookies['a1'], api, method='GET')
         resp = requests.get(
             self.base_url + api,
             headers=headers, cookies=cookies,
@@ -151,8 +210,20 @@ class XHSLoginApi:
         for key, value in resp.cookies.items():
             cookies[key] = value
 
-        res = resp.json()
-        return res.get('success', False), res.get('data', {}), cookies
+        res = self._auth_payload(resp, 'user_me')
+        data = res.get('data') or {}
+        if not self._check_auth_response(resp, res):
+            return False, data, cookies
+        if data.get('guest') in (True, 1, 'true', '1'):
+            self._auth_issue('authentication', '小红书返回的仍是游客会话，请重新扫码并在手机上确认登录。', resp, res)
+            return False, data, cookies
+        if not (data.get('user_id') or data.get('id')):
+            self._auth_issue('protocol', '账号校验没有返回用户信息，请重新扫码。', resp, res)
+            return False, data, cookies
+        if not cookies.get('web_session'):
+            self._auth_issue('protocol', '账号校验缺少登录凭据，请重新扫码。', resp, res)
+            return False, data, cookies
+        return True, data, cookies
 
     def send_phone_code(self, phone, cookies, zone='86'):
         api = '/api/sns/web/v2/login/send_code'
@@ -256,6 +327,9 @@ class XHSLoginApi:
                 break
             if msg == '二维码已过期':
                 logger.error(msg)
+                return None
+            if self.last_auth_issue:
+                logger.error(self.last_auth_issue['message'])
                 return None
             time.sleep(2)
 

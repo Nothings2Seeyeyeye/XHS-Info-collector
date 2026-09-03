@@ -74,7 +74,7 @@ class WebXHS(XHS_Apis):
     def _is_risk_response(self, status_code, response_text, res_json=None):
         message = str((res_json or {}).get("msg", "")) if isinstance(res_json, dict) else ""
         code = str(res_json.get("code", "")) if isinstance(res_json, dict) else ""
-        if status_code == 461 or code == "300012" or any(word in message for word in ("IP存在风险", "IP 存在风险", "安全限制")):
+        if status_code in {461, 471} or code == "300012" or any(word in message for word in ("IP存在风险", "IP 存在风险", "安全限制")):
             return True, "[PLATFORM_BLOCKED] 小红书限制当前网络访问，请先在官网处理网络或验证"
         if status_code == 401 or any(t in message.lower() for t in ("未登录", "登录失效", "登录已失效", "登录已过期", "登录过期", "登录态失效", "请先登录", "session expired", "login required")):
             return True, "[AUTH_REQUIRED] 小红书登录已失效"
@@ -107,6 +107,8 @@ def verify_cookie(store, check=lambda: None):
     try:
         response = checked(WebXHS(check).get_user_self_info2(cookie))
         data = response.get("data") or {}
+        if data.get("guest") in (True, 1, 'true', '1') or not (data.get("user_id") or data.get("id")):
+            raise LoginRequired("小红书返回游客会话或缺少账号信息，请重新扫码登录")
         store.put("xhs_status", {"state": "valid", "nickname": data.get("nickname", "已登录"),
                   "user_id": str(data.get("user_id") or data.get("id") or ""), "checked_at": time.time()})
     except LoginRequired:

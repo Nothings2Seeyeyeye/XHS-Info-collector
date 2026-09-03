@@ -583,7 +583,7 @@ function QRDialog({
     };
   }, [open, generation]);
   useEffect(() => {
-    if (!open || !qr || state !== "waiting") return;
+    if (!open || !qr || !["waiting", "verifying"].includes(state)) return;
     let active = true,
       failures = 0,
       timer: ReturnType<typeof setTimeout>;
@@ -598,14 +598,17 @@ function QRDialog({
         if (result.state === "success") {
           setState("success");
           connected();
-          notify("小红书已连接，等待登录的任务将自动继续");
+          notify(result.message);
           return;
+        }
+        if (result.state === "verifying") {
+          setState("verifying");
         }
         if (result.state === "expired") {
           setState("expired");
           return;
         }
-        if (result.state === "blocked") {
+        if (result.state === "blocked" || result.state === "error") {
           setState("error");
           setQR(null);
           return;
@@ -639,8 +642,8 @@ function QRDialog({
       <div className="qr-box">
         {state === "loading" ? (
           <Busy text="准备二维码" />
-        ) : state === "success" ? (
-          <CheckCircle2 size={70} className="success-color" />
+        ) : state === "verifying" ? (
+          <Busy text="正在校验小红书账号…" />
         ) : qr ? (
           <img src={qr.image} alt="小红书登录二维码" />
         ) : (
@@ -663,18 +666,14 @@ function QRDialog({
             </a>
           </Button>
         )}
-        {state === "success" ? (
-          <Button onClick={close}>完成</Button>
-        ) : (
-          <Button
-            variant="secondary"
-            disabled={state === "loading"}
-            onClick={() => setGeneration((g) => g + 1)}
-          >
-            <RefreshCw size={16} />
-            重新生成
-          </Button>
-        )}
+        <Button
+          variant="secondary"
+          disabled={state === "loading"}
+          onClick={() => setGeneration((g) => g + 1)}
+        >
+          <RefreshCw size={16} />
+          重新生成
+        </Button>
       </div>
     </Dialog>
   );
@@ -1850,7 +1849,7 @@ export default function App() {
     useSensor(PointerSensor, { activationConstraint: { distance: 7 } }),
     useSensor(KeyboardSensor),
   );
-  function navigate(next: View, folder = "") {
+  const navigate = useCallback((next: View, folder = "") => {
     setView(next);
     setActiveFolder(folder);
     setJobId("");
@@ -1859,8 +1858,15 @@ export default function App() {
     setTag("");
     setSelected([]);
     setSelecting(false);
+    setPage(1);
     setSidebarOpen(false);
-  }
+  }, []);
+  const handleXhsConnected = useCallback(() => {
+    setQROpen(false);
+    setDetail(null);
+    navigate("library");
+    refresh();
+  }, [navigate, refresh]);
   function openJob(id: string) {
     setView("capture");
     setJobId(id);
@@ -2872,7 +2878,7 @@ export default function App() {
       <QRDialog
         open={qrOpen}
         close={() => setQROpen(false)}
-        connected={refresh}
+        connected={handleXhsConnected}
         notify={notify}
       />
       <ExportDialog
