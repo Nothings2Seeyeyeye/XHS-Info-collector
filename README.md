@@ -1,5 +1,48 @@
 # Spider_XHS
 
+## 拾页 · 本地素材工作台
+
+本项目现提供 React + TypeScript 网页界面和 Python/FastAPI 本地服务。笔记、标签、文件夹和任务进度存于 SQLite，图片/视频及 TXT/JSON 等文件继续沿用现有目录。仅监听本机 `127.0.0.1`。
+
+首次安装（Python 3.11+，Node.js 22.12+ 或 24）：
+
+```bash
+uv sync --group dev
+npm ci
+npm --prefix frontend ci
+npm --prefix frontend run build
+bash scripts/web.sh
+```
+
+之后运行 `bash scripts/web.sh`，或在 macOS 双击 `启动拾页.command`，浏览器将打开 `http://127.0.0.1:8765`。首次打开创建本地管理员，已有下载笔记自动导入。忘记密码时先备份 `datas/app/`，再使用 `PYTHONPATH=src .venv/bin/python -m spider_xhs.web.reset_password` 在终端重设。
+
+- **采集**：支持分享文案、批量链接、作者主页、收藏页、关键词。任务结果内可直接查看笔记；按 ID 去重，补齐缺失媒体。作者和收藏来源可设置数量，`0` 为不限。
+- **内容**：封面卡片、图文翻页、视频播放、完整正文、互动数量及 OCR。搜索支持中文正文、原标签、个人标签和 OCR 文字。
+- **整理**：多层文件夹、拖拽、笔记多文件夹归类，提供按钮操作作为拖拽替代；原标签与个人标签分开保存。
+- **回收站**：可恢复笔记与分类，清空才删除文件。删除文件夹只删除分类及子文件夹。仍关联未结束任务的笔记需先取消任务再永久删除。
+- **登录**：小红书扫码凭据自动加密保存。登录失效的采集任务等待扫码并自动恢复；平台限流/验证码会暂停并提示手动处理，不能当作 Cookie 过期直接重试。
+- **OCR**：设置里填写兼容 PaddleOCR 协议的服务地址、模型及 Key。连接测试会提交一张生成的测试图片。支持整条/多选笔记识别。异步 OCR 保存服务端任务 ID，重启后继续查询，已保存的图片结果跳过。
+- **导出**：沿用 `detail.txt`、`info.json`、`ai_context/note_ai_context.txt`、`ai_context/note_ai_context.json`、媒体、OCR Markdown 及 Excel；多文件通过 ZIP 下载，内部格式保持原样。文件夹导出包含子文件夹。
+
+关闭网页后后台任务继续运行；在启动终端按 Ctrl+C 停止服务。下次启动恢复运行中任务，主动暂停/取消的任务保持不变。暂停在当前网络/文件操作结束后生效。评论全文尚未接入，首版展示已采集的评论数量。
+
+本地工作台凭据保存在 `datas/app/`，首次运行可从 `.env` 导入；网页扫码更新工作台凭据。备份时停止服务，然后一并备份 `datas/app/` 与媒体目录，其中 `secret.key` 用于解密凭据。上述运行数据均已加入 Git 忽略。
+
+按本机使用要求，应用 HTTP 请求显式直连，不继承 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 等代理环境变量；HTTPS 证书验证仍开启。系统级全局 VPN/TUN 的路由仍由操作系统或 VPN 客户端管理。
+
+开发和验证：
+
+```bash
+# 开发前端：Vite 代理 /api 到本地后端
+npm --prefix frontend run dev
+# Python 离线集成测试
+.venv/bin/python -m pytest tests -q
+# 隔离数据的浏览器全流程测试
+npm --prefix frontend run test:e2e
+```
+
+详细范围见 [本地工作台说明](docs/LOCAL_WORKBENCH.md)。下面保留原 CLI 的使用方式。
+
 **✨ 专业的小红书数据采集解决方案，支持笔记爬取，保存格式为excel或者media**
 
 **✨ 小红书全域运营解决方法，AI一键改写笔记（图文，视频）直接上传**
@@ -81,7 +124,7 @@ image
 
 ### ⛳运行环境
 
-- Python 3.7+
+- Python 3.11+
 - Node.js 18+
 
 ### 🎯安装依赖
@@ -111,7 +154,7 @@ image
 python main.py
 ```
 
-在 `test002` 目录下运行。交互菜单可选 **「下载用户收藏夹中的全部笔记」**；命令行示例：
+在项目根目录下运行。交互菜单可选 **「下载用户收藏夹中的全部笔记」**；命令行示例：
 
 ```
 python main.py --mode collect --user-url "https://www.xiaohongshu.com/user/profile/用户ID?tab=fav&subTab=note" --collect-num 50 --save-choice all --excel-name fav_export

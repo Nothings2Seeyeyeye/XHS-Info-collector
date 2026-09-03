@@ -7,7 +7,7 @@ import time
 from io import BytesIO
 from typing import Optional
 import openpyxl
-import requests
+from spider_xhs.utils import network as requests
 from loguru import logger
 from retry import retry
 from PIL import Image

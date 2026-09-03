@@ -4,7 +4,7 @@ import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-import requests
+from spider_xhs.utils import network as requests
 from loguru import logger
 
 

@@ -3,7 +3,7 @@ import json
 import re
 import time
 import urllib
-import requests
+from spider_xhs.utils import network as requests
 from spider_xhs.utils.xhs_util import (
     splice_str,
     generate_request_params,
@@ -1126,7 +1126,6 @@ if __name__ == '__main__':
     note_url = r'https://www.xiaohongshu.com/explore/67d7c713000000000900e391?xsec_token=AB1ACxbo5cevHxV_bWibTmK8R1DDz0NnAW1PbFZLABXtE=&xsec_source=pc_user'
     success, msg, note_all_comment = xhs_apis.get_note_all_comment(note_url, cookies_str)
     logger.info(f'获取笔记评论结果 {json.dumps(note_all_comment, ensure_ascii=False)}: {success}, msg: {msg}')
-
 
 
 

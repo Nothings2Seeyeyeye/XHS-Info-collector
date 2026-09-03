@@ -5,6 +5,11 @@ description = "Spider_XHS 采集工具（src 布局：源码在 src/spider_xhs�
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "sqlalchemy>=2.0",
+    "cryptography>=44",
+    "argon2-cffi>=23.1",
     "PyExecJS>=1.5.1",
     "requests>=2.31.0",
     "loguru>=0.7.0",
@@ -16,3 +21,6 @@ dependencies = [
     "opencv-python>=4.8.0",
     "numpy>=1.24.0",
 ]
+
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.28"]

@@ -2,7 +2,7 @@ import argparse
 import os
 import re
 import urllib.parse
-import requests
+from spider_xhs.utils import network as requests
 from loguru import logger
 from spider_xhs.apis.xhs_pc_apis import XHS_Apis
 from spider_xhs.apis.xhs_pc_login_apis import XHSLoginApi

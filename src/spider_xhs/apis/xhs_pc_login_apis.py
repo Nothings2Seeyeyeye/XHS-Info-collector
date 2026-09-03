@@ -3,7 +3,7 @@ import time
 import random
 import uuid
 
-import requests
+from spider_xhs.utils import network as requests
 import qrcode
 from loguru import logger
 

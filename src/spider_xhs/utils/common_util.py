@@ -6,7 +6,7 @@ import binascii
 import json
 
 import execjs
-import requests
+from spider_xhs.utils import network as requests
 from loguru import logger
 from dotenv import load_dotenv
 

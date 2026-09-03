@@ -1,5 +1,11 @@
 __pycache__
 .DS_Store
+datas/app/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+*.tsbuildinfo
+.pytest_cache/
 node_modules/
 .env
 .env.*
